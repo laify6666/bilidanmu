@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}弹幕分析{% endblock %}
+{% block content %}
+<div class="hero-app text-center py-5">
+  <div class="hero-badge">弹幕 · 情感 · 关键词</div>
+  <h1 class="hero-title">把一条视频的弹幕，变成一份分析报告</h1>
+  <p class="hero-sub">输入视频 BV 号，自动爬取全量弹幕并分析：高能片段、观众情绪、反应词、主题关键词</p>
+  <form class="search-form mx-auto" action="/danmaku/analyze/" method="get">
+    <input name="bvid" class="search-input" placeholder="输入 BV 号，如 BV15BuR6MEeR" autocomplete="off">
+    <button class="search-btn" type="submit">
+      <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      分析
+    </button>
+  </form>
+  <div class="hero-tips">
+    <span>示例：BV15BuR6MEeR</span>
+  </div>
+</div>
+<style>
+.hero-app{padding-top:3.5rem;padding-bottom:3rem}
+.hero-badge{display:inline-block;background:var(--color-muted);color:var(--color-primary);border:1px solid #FCCEDD;font-size:.85rem;font-weight:600;padding:.3rem 1rem;border-radius:999px;margin-bottom:1.2rem}
+.hero-title{font-size:2rem;font-weight:700;color:#18191C;margin-bottom:.8rem}
+.hero-sub{color:var(--color-muted-fg);max-width:520px;margin:0 auto 2rem;line-height:1.7}
+.search-form{display:flex;gap:10px;max-width:560px}
+.search-input{flex:1;height:52px;border:2px solid var(--color-border);border-radius:12px;padding:0 1.1rem;font-size:1rem;outline:none;transition:border-color .2s ease,box-shadow .2s ease}
+.search-input:focus{border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(251,114,153,.12)}
+.search-btn{height:52px;padding:0 1.8rem;border:none;border-radius:12px;background:var(--grad-nav);color:#fff;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:transform .15s ease,box-shadow .2s ease}
+.search-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(251,114,153,.5)}
+.search-btn:active{transform:scale(.97)}
+.hero-tips{margin-top:1.2rem;color:var(--color-muted-fg);font-size:.9rem}
+.hero-tips span{background:#fff;border:1px solid var(--color-border);border-radius:8px;padding:.2rem .8rem;cursor:pointer}
+</style>
+{% endblock %}

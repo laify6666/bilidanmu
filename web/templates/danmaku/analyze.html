@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title|truncatechars:24 }} · 弹幕分析{% endblock %}
+{% block content %}
+<style>
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.page-head h1{font-size:1.3rem;font-weight:700;margin:0;line-height:1.4}
+.page-meta{color:var(--color-muted-fg);font-size:.88rem;margin-top:.35rem;display:flex;gap:.6rem;flex-wrap:wrap}
+.page-meta .sep{opacity:.45}
+.page-search{display:flex;gap:8px;min-width:300px}
+.page-search input{flex:1;height:40px;border:1.5px solid var(--color-border);border-radius:9px;padding:0 .85rem;font-size:.9rem;outline:none;transition:border-color .2s}
+.page-search input:focus{border-color:var(--color-primary)}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:1.2rem}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border:1px solid var(--color-border);border-radius:12px;padding:1rem 1.1rem;box-shadow:var(--shadow-sm)}
+.kpi .kpi-label{font-size:.76rem;color:var(--color-muted-fg);margin-bottom:.35rem}
+.kpi .kpi-value{font-size:1.5rem;font-weight:700;font-family:var(--font-mono);color:#18191C;line-height:1.15}
+.kpi .kpi-value small{font-size:.85rem;color:var(--color-muted-fg);font-weight:500}
+.kpi .kpi-sub{font-size:.74rem;color:var(--color-muted-fg);margin-top:.3rem}
+.panel{background:#fff;border:1px solid var(--color-border);border-radius:14px;box-shadow:var(--shadow-sm);padding:1.15rem 1.3rem;margin-bottom:1.2rem}
+.panel h2{font-size:.98rem;font-weight:700;margin:0 0 .3rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.panel-desc{font-size:.8rem;color:var(--color-muted-fg);font-weight:400}
+.seg-card{background:#fff;border:1px solid var(--color-border);border-radius:12px;padding:.9rem 1rem;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.seg-head{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.55rem}
+.seg-time{font-family:var(--font-mono);font-weight:700;font-size:1.02rem;color:#18191C}
+.seg-badge{padding:.16rem .65rem;border-radius:999px;font-size:.76rem;font-weight:600}
+.seg-badge.pos{background:#E6F7EE;color:#1FA05C}
+.seg-badge.neg{background:#FDECEC;color:#E5484D}
+.seg-badge.neu{background:#F2F3F5;color:#9499A0}
+.seg-stats{color:var(--color-muted-fg);font-size:.8rem}
+.dm-chip{display:inline-flex;align-items:center;gap:6px;background:#F7F8FA;border:1px solid var(--color-border);border-radius:8px;padding:.22rem .6rem;margin:3px 5px 0 0;font-size:.84rem}
+.dm-chip .dot{width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.08);flex-shrink:0}
+.dm-chip .cnt{color:var(--color-muted-fg);font-family:var(--font-mono);font-size:.74rem}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.tag-word{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:.28rem .85rem;font-weight:600;border:1px solid}
+.tag-word.sz-1{font-size:.8rem}.tag-word.sz-2{font-size:.88rem}.tag-word.sz-3{font-size:.98rem}.tag-word.sz-4{font-size:1.1rem}.tag-word.sz-5{font-size:1.22rem}
+.tag-pos{background:#E6F7EE;border-color:#BFEBD2;color:#1FA05C}
+.tag-neg{background:#FDECEC;border-color:#F6C8C9;color:#E5484D}
+.tag-neu{background:#F2F3F5;border-color:#E5E6E8;color:#9499A0}
+.tag-empty{color:var(--color-muted-fg);font-size:.9rem}
+.searchable tbody tr.hide{display:none}
+.search-box{max-width:340px;margin-left:auto;margin-bottom:.8rem}
+.search-box input{width:100%;height:38px;border:1.5px solid var(--color-border);border-radius:9px;padding:0 .85rem;font-size:.88rem;outline:none}
+.search-box input:focus{border-color:var(--color-primary)}
+</style>
+
+<div class="page-head">
+  <div>
+    <h1>{{ meta.title }}</h1>
+    <div class="page-meta">
+      <span class="mono">{{ data.bvid }}</span><span class="sep">·</span>
+      <span>{{ meta.up_name|default:"未知UP" }}</span><span class="sep">·</span>
+      <span>{{ meta.tname|default:"未分区" }}</span><span class="sep">·</span>
+      <span>{{ meta.duration }} 秒</span>
+    </div>
+  </div>
+  <form class="page-search" action="/danmaku/analyze/" method="get">
+    <input name="bvid" placeholder="换一个 BV 号" value="{{ data.bvid }}" autocomplete="off">
+    <button class="btn-app btn-app-primary" type="submit" style="height:40px;padding:0 1.1rem">分析</button>
+  </form>
+</div>
+
+<!-- ① KPI 仪表带 -->
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">弹幕总数</div><div class="kpi-value">{{ data.total }}</div>
+    <div class="kpi-sub">全量抓取</div></div>
+  <div class="kpi"><div class="kpi-label">参与人数</div><div class="kpi-value">{{ data.overview.unique_users }}</div>
+    <div class="kpi-sub">人均 {{ data.overview.avg_per_user }} 条</div></div>
+  <div class="kpi"><div class="kpi-label">正面占比</div><div class="kpi-value">{% widthratio data.sentiment.overall.pos_ratio 1 100 %}<small>%</small></div>
+    <div class="kpi-sub">{{ data.sentiment.overall.label }} · 正{{ data.sentiment.overall.positive }} 负{{ data.sentiment.overall.negative }}</div></div>
+  <div class="kpi"><div class="kpi-label">最炸时刻</div><div class="kpi-value">{{ data.overview.peak_bucket }}</div>
+    <div class="kpi-sub">弹幕密度峰值</div></div>
+  <div class="kpi"><div class="kpi-label">反应词</div><div class="kpi-value">{{ data.reaction_words|length }}</div>
+    <div class="kpi-sub">观众瞬间刷的词</div></div>
+  <div class="kpi"><div class="kpi-label">高能片段</div><div class="kpi-value">{{ data.hot_segments_v2|length }}</div>
+    <div class="kpi-sub">全片精彩时刻</div></div>
+</div>
+
+<!-- ② 时间轴主图 -->
+<div class="panel">
+  <h2>时间轴 <span class="panel-desc">柱 = 弹幕密度 · 线 = 情绪（上正下负）· 粉色块 = 高能片段</span></h2>
+  <div id="timeline" style="height:300px"></div>
+</div>
+
+<!-- ③ 高能片段 + ④ 反应词 -->
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="panel h-100">
+      <h2>高能片段 <span class="panel-desc">每个高潮附佐证弹幕（颜色为弹幕原色）</span></h2>
+      {% for s in segments %}
+      <div class="seg-card">
+        <div class="seg-head">
+          <span class="seg-time">{{ s.time_str }}</span>
+          <span class="seg-badge {{ s.label_class }}">{{ s.label }}</span>
+          <span class="seg-stats">{{ s.count }} 条 · 峰值 {{ s.peak_str }}</span>
+        </div>
+        <div>
+          {% for e in s.evidence %}
+          <span class="dm-chip"><span class="dot" style="background:#{{ e.color_hex }}"></span>{{ e.content }}<span class="cnt">×{{ e.count }}</span></span>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <p class="tag-empty">没有检测到明显高能片段（弹幕太均匀）</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="panel h-100">
+      <h2>反应词 <span class="panel-desc">尺寸 = 频次 · 颜色 = 情绪（A2 判定）</span></h2>
+      <div id="reaction-cloud" class="tag-cloud"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ 关键词 + ⑥⑦ 分布 -->
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="panel">
+      <h2>主题关键词 <span class="panel-desc">观众在聊什么（jieba 分词）</span></h2>
+      <div id="keywords" style="height:270px"></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="panel">
+          <h2>弹幕类型</h2>
+          <div id="modeChart" style="height:210px"></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="panel">
+          <h2>活跃时段</h2>
+          <div id="hoursChart" style="height:210px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑧ 热门弹幕表 -->
+<div class="panel">
+  <h2>热门弹幕 <span class="panel-desc">相同内容去重，按出现次数排序，可搜索</span></h2>
+  <div class="search-box"><input id="dm-search" placeholder="搜索弹幕内容…"></div>
+  <table class="table table-app searchable align-middle">
+    <thead><tr><th style="width:56px">#</th><th>弹幕内容</th><th style="width:170px">次数</th></tr></thead>
+    <tbody id="dm-tbody">
+      {% for t in data.top_danmaku %}
+      <tr><td class="mono text-muted">{{ forloop.counter }}</td><td>{{ t.content }}</td>
+        <td><div class="d-flex align-items-center gap-2"><div class="progress progress-app flex-grow-1" style="max-width:110px"><div class="progress-bar" style="width:{% widthratio t.count data.top_danmaku.0.count 100 %}%"></div></div><span class="mono">{{ t.count }}</span></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+var DATA = {{ data_json|safe }};
+
+// ② 时间轴主图
+(function(){
+  var tl = DATA.timeline_density, sent = DATA.sentiment.timeline, segs = DATA.hot_segments_v2;
+  var w = DATA.window_sec || 30;
+  var density = tl.values.map(function(v,i){ return [i*w + w/2, v]; });
+  var emo = [];
+  sent.score.forEach(function(v,i){ if(v!==null) emo.push({value:[i*w+w/2, v], itemStyle:{color: v>=0 ? '#1FA05C' : '#E5484D'}}); });
+  var markData = segs.map(function(s){ return [{xAxis:s.start, itemStyle:{color:'rgba(251,114,153,.16)'}}, {xAxis:s.end}]; });
+  var chart = echarts.init(document.getElementById('timeline'));
+  chart.setOption({
+    tooltip:{trigger:'axis'},
+    grid:{left:44,right:50,top:26,bottom:34},
+    xAxis:{type:'value', max:DATA.duration_sec||undefined, name:'秒'},
+    yAxis:[{type:'value', name:'条数', splitLine:{lineStyle:{color:'#F1F2F4'}}},
+           {type:'value', name:'情绪', min:-1, max:1, splitLine:{show:false}}],
+    series:[
+      {name:'弹幕密度', type:'bar', data:density, barWidth:'62%',
+       itemStyle:{color:'rgba(251,114,153,.42)', borderRadius:[3,3,0,0]}, yAxisIndex:0},
+      {name:'情绪', type:'line', data:emo, yAxisIndex:1, smooth:true, symbol:'none',
+       lineStyle:{width:2.5}, markArea:{silent:true, data:markData}}
+    ]
+  });
+})();
+
+// ④ 反应词标签云
+(function(){
+  var words = DATA.reaction_words || [];
+  var sentMap = {};
+  (DATA.sentiment.reaction_sentiment||[]).forEach(function(x){ sentMap[x.word] = x.label; });
+  var box = document.getElementById('reaction-cloud');
+  if(!words.length){ box.innerHTML = '<span class="tag-empty">没有发现反应词</span>'; return; }
+  var maxC = words[0].count;
+  words.slice(0,18).forEach(function(x){
+    var label = sentMap[x.word] || '中性';
+    var cls = label==='正面' ? 'tag-pos' : (label==='负面' ? 'tag-neg' : 'tag-neu');
+    var r = x.count / maxC;
+    var sz = r>0.7 ? 5 : r>0.45 ? 4 : r>0.25 ? 3 : r>0.12 ? 2 : 1;
+    var el = document.createElement('span');
+    el.className = 'tag-word ' + cls + ' sz-' + sz;
+    el.textContent = x.word + ' ×' + x.count;
+    box.appendChild(el);
+  });
+})();
+
+// ⑤ 关键词条形图
+(function(){
+  var kw = (DATA.keywords.global||[]).slice(0,15).reverse();
+  var chart = echarts.init(document.getElementById('keywords'));
+  chart.setOption({
+    tooltip:{},
+    grid:{left:8,right:36,top:8,bottom:8,containLabel:true},
+    xAxis:{type:'value', splitLine:{lineStyle:{color:'#F1F2F4'}}},
+    yAxis:{type:'category', data:kw.map(function(x){return x.word;}), axisLine:{show:false}, axisTick:{show:false}},
+    series:[{type:'bar', data:kw.map(function(x){return x.count;}), barWidth:'55%',
+             itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#FFD1DE'},{offset:1,color:'#FB7299'}]), borderRadius:[0,6,6,0]}}]
+  });
+})();
+
+// ⑥ 弹幕类型分布
+(function(){
+  var md = DATA.mode_dist||[];
+  var chart = echarts.init(document.getElementById('modeChart'));
+  chart.setOption({
+    tooltip:{trigger:'item', formatter:'{b}: {c} ({d}%)'},
+    series:[{type:'pie', radius:['52%','74%'], center:['50%','52%'],
+      data:md, label:{fontSize:11, color:'#9499A0'},
+      itemStyle:{borderRadius:6, borderColor:'#fff', borderWidth:2},
+      color:['#FB7299','#23ADE5','#F5C518']}]
+  });
+})();
+
+// ⑦ 活跃时段
+(function(){
+  var ah = DATA.active_hours||{labels:[],values:[]};
+  var chart = echarts.init(document.getElementById('hoursChart'));
+  chart.setOption({
+    tooltip:{},
+    grid:{left:30,right:8,top:12,bottom:22},
+    xAxis:{type:'category', data:ah.labels, axisLabel:{interval:3, fontSize:10, color:'#9499A0'}},
+    yAxis:{type:'value', splitLine:{lineStyle:{color:'#F1F2F4'}}},
+    series:[{type:'bar', data:ah.values, barWidth:'55%',
+             itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#FB7299'},{offset:1,color:'#FFD1DE'}]), borderRadius:[3,3,0,0]}}]
+  });
+})();
+
+// ⑧ 弹幕表搜索
+(function(){
+  var input = document.getElementById('dm-search');
+  var rows = document.querySelectorAll('#dm-tbody tr');
+  input.addEventListener('input', function(){
+    var q = this.value.trim().toLowerCase();
+    rows.forEach(function(tr){
+      tr.classList.toggle('hide', !!q && tr.cells[1].textContent.toLowerCase().indexOf(q) === -1);
+    });
+  });
+})();
+</script>
+{% endblock %}

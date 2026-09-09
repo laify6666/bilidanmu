@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}无法分析{% endblock %}
+{% block content %}
+<div class="empty-state py-5" style="max-width:560px;margin:3rem auto">
+  <h3 class="mb-3">无法分析这个视频</h3>
+  <p class="mono text-muted mb-2">{{ bvid }}</p>
+  <p class="text-muted mb-4">{{ message }}</p>
+  <a class="btn-app btn-app-primary" href="/danmaku/">返回输入页</a>
+</div>
+{% endblock %}
